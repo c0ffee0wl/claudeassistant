@@ -1,0 +1,274 @@
+"""In-process MCP server for claudeassistant agent control.
+
+Exposes tools for Claude to manage agents within claudeassistant:
+- spawn_agent: Create new agent, optionally with initial prompt
+- ask_agent: Send question to existing agent (expects reply)
+- tell_agent: Send message to existing agent (no reply expected)
+- list_agents: List current agents and their status
+- close_agent: Close an agent by name
+"""
+
+from __future__ import annotations
+
+import logging
+import time
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+from claude_agent_sdk import tool, create_sdk_mcp_server
+
+from claudeassistant.tasks import create_safe_task
+
+if TYPE_CHECKING:
+    from claudeassistant.app import ChatApp
+
+log = logging.getLogger(__name__)
+
+# Global app reference, set by ChatApp.on_mount()
+_app: ChatApp | None = None
+
+
+def set_app(app: ChatApp) -> None:
+    """Register the app instance for MCP tools to use."""
+    global _app
+    _app = app
+
+
+def _text_response(text: str) -> dict[str, Any]:
+    """Format a text response for MCP."""
+    return {"content": [{"type": "text", "text": text}]}
+
+
+def _find_agent_by_name(name: str):
+    """Find an agent by name. Returns (agent, error_message)."""
+    if _app is None or _app.agent_mgr is None:
+        return None, "App not initialized"
+    agent = _app.agent_mgr.find_by_name(name)
+    if agent:
+        return agent, None
+    return None, f"Agent '{name}' not found. Use list_agents to see available agents."
+
+
+def _send_prompt_fire_and_forget(
+    agent,
+    prompt: str,
+    *,
+    caller_name: str | None = None,
+    expect_reply: bool = False,
+    is_spawn: bool = False,
+) -> None:
+    """Fire-and-forget prompt send that doesn't block MCP handlers.
+
+    MCP handlers have implicit timeouts - awaiting SDK operations like
+    agent.send() can cause "stream closed" errors. This function schedules
+    the send as a background task and returns immediately.
+
+    Args:
+        agent: The agent to send to
+        prompt: The message to send
+        caller_name: If set, wraps prompt with sender info
+        expect_reply: If True (with caller_name), adds reply instructions
+        is_spawn: If True (with caller_name), uses "Spawned by" prefix
+    """
+    # Wrap prompt with caller info if provided
+    if caller_name:
+        if expect_reply:
+            prompt = f"[Question from agent '{caller_name}' - please respond back using tell_agent, or ask_agent if you need more context]\n\n{prompt}"
+        elif is_spawn:
+            prompt = f"[Spawned by agent '{caller_name}']\n\n{prompt}"
+        else:
+            prompt = f"[Message from agent '{caller_name}']\n\n{prompt}"
+
+    async def do_send():
+        if agent.client is None:
+            log.warning(f"Agent '{agent.name}' not connected, skipping prompt")
+            return
+        await agent.send(prompt)
+
+    # Use monotonic_ns for unique task names (helps debugging concurrent sends)
+    task_id = time.monotonic_ns()
+    create_safe_task(do_send(), name=f"send-prompt-{agent.name}-{task_id}")
+
+
+def _make_spawn_agent(caller_name: str | None = None):
+    """Create spawn_agent tool with optional caller name bound."""
+
+    @tool(
+        "spawn_agent",
+        "Create a new Claude agent in claudeassistant. The agent gets its own chat view and can work independently.",
+        {"name": str, "path": str, "prompt": str},
+    )
+    async def spawn_agent(args: dict[str, Any]) -> dict[str, Any]:
+        """Spawn a new agent, optionally with an initial prompt."""
+        if _app is None or _app.agent_mgr is None:
+            return _text_response("Error: App not initialized")
+
+        name = args["name"]
+        # Default to active agent's cwd (so agents inherit creator's directory)
+        default_cwd = _app.agent_mgr.active.cwd if _app.agent_mgr.active else Path.cwd()
+        path = Path(args.get("path", str(default_cwd))).resolve()
+        prompt = args.get("prompt")
+
+        if not path.exists():
+            return _text_response(f"Error: Path '{path}' does not exist")
+
+        # Check if agent with this name already exists
+        if _app.agent_mgr.find_by_name(name):
+            return _text_response(f"Error: Agent '{name}' already exists")
+
+        try:
+            # Create agent via AgentManager (handles SDK connection)
+            agent = await _app.agent_mgr.create(name=name, cwd=path, switch_to=False)
+        except Exception as e:
+            return _text_response(f"Error creating agent: {e}")
+
+        result = f"Created agent '{name}' in {path}"
+
+        if prompt:
+            _send_prompt_fire_and_forget(
+                agent, prompt, caller_name=caller_name, is_spawn=True
+            )
+            result += f"\nQueued initial prompt: {prompt[:100]}{'...' if len(prompt) > 100 else ''}"
+
+        return _text_response(result)
+
+    return spawn_agent
+
+
+def _make_ask_agent(caller_name: str | None = None):
+    """Create ask_agent tool with optional caller name bound."""
+
+    @tool(
+        "ask_agent",
+        "Send a question to another agent. Returns immediately - the agent will respond back using tell_agent (or ask_agent if they need more context) when ready.",
+        {"name": str, "prompt": str},
+    )
+    async def ask_agent(args: dict[str, Any]) -> dict[str, Any]:
+        """Send question to an agent. Non-blocking."""
+        if _app is None or _app.agent_mgr is None:
+            return _text_response("Error: App not initialized")
+
+        name = args["name"]
+        prompt = args["prompt"]
+
+        agent, error = _find_agent_by_name(name)
+        if agent is None:
+            return _text_response(f"Error: {error}")
+
+        _send_prompt_fire_and_forget(
+            agent, prompt, caller_name=caller_name, expect_reply=True
+        )
+
+        return _text_response(
+            f"Question queued for '{name}'. Delivery is asynchronous - the message may not arrive if the agent is disconnected."
+        )
+
+    return ask_agent
+
+
+def _make_tell_agent(caller_name: str | None = None):
+    """Create tell_agent tool with optional caller name bound."""
+
+    @tool(
+        "tell_agent",
+        "Send a message to another agent without expecting a reply. Use for status updates, results, or answering questions.",
+        {"name": str, "message": str},
+    )
+    async def tell_agent(args: dict[str, Any]) -> dict[str, Any]:
+        """Send message to an agent. Non-blocking, no reply expected."""
+        if _app is None or _app.agent_mgr is None:
+            return _text_response("Error: App not initialized")
+
+        name = args["name"]
+        message = args["message"]
+
+        agent, error = _find_agent_by_name(name)
+        if agent is None:
+            return _text_response(f"Error: {error}")
+
+        _send_prompt_fire_and_forget(agent, message, caller_name=caller_name)
+
+        return _text_response(f"Message queued for '{name}'. Delivery is asynchronous.")
+
+    return tell_agent
+
+
+@tool(
+    "list_agents",
+    "List all agents currently running in claudeassistant with their status and working directory.",
+    {},
+)
+async def list_agents(args: dict[str, Any]) -> dict[str, Any]:  # noqa: ARG001
+    """List all agents and their status."""
+    try:
+        if _app is None or _app.agent_mgr is None:
+            return _text_response("Error: App not initialized")
+
+        if len(_app.agent_mgr) == 0:
+            return _text_response("No agents running")
+
+        lines = ["Agents:"]
+        for i, agent in enumerate(_app.agent_mgr, 1):
+            active = "*" if agent.id == _app.agent_mgr.active_id else " "
+            lines.append(
+                f"{active}{i}. {agent.name} [{agent.status}] - {agent.cwd}"
+            )
+
+        return _text_response("\n".join(lines))
+    except Exception as e:
+        log.exception("list_agents failed")
+        return _text_response(f"Error: Failed to list agents: {e}")
+
+
+@tool(
+    "close_agent",
+    "Close an agent by name. Cannot close the last remaining agent.",
+    {"name": str},
+)
+async def close_agent(args: dict[str, Any]) -> dict[str, Any]:
+    """Close an agent."""
+    try:
+        if _app is None or _app.agent_mgr is None:
+            return _text_response("Error: App not initialized")
+
+        name = args["name"]
+
+        # Can't close the last agent
+        if len(_app.agent_mgr) <= 1:
+            return _text_response("Error: Cannot close the last agent")
+
+        agent, error = _find_agent_by_name(name)
+        if agent is None:
+            return _text_response(f"Error: {error}")
+
+        agent_id = agent.id
+        agent_name = agent.name
+
+        # Use app's close method which handles UI cleanup
+        _app._do_close_agent(agent_id)
+
+        return _text_response(f"Closed agent '{agent_name}'")
+    except Exception as e:
+        agent_name = args.get("name", "unknown") if args else "unknown"
+        log.exception(f"close_agent failed for '{agent_name}'")
+        return _text_response(f"Error: Failed to close agent '{agent_name}': {e}")
+
+
+def create_chic_server(caller_name: str | None = None):
+    """Create the chic MCP server with all tools.
+
+    Args:
+        caller_name: Name of the agent that will use this server.
+            Used to identify the sender in spawn/ask/tell agent calls.
+    """
+    return create_sdk_mcp_server(
+        name="chic",
+        version="1.0.0",
+        tools=[
+            _make_spawn_agent(caller_name),
+            _make_ask_agent(caller_name),
+            _make_tell_agent(caller_name),
+            list_agents,
+            close_agent,
+        ],
+    )

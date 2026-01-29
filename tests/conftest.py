@@ -22,7 +22,7 @@ async def submit_command(app, pilot, command: str):
     When setting input text directly, autocomplete may activate.
     This helper hides it before submitting to ensure the command goes through.
     """
-    from claudechic.widgets import ChatInput
+    from claudeassistant.widgets import ChatInput
 
     input_widget = app.query_one("#input", ChatInput)
     input_widget.text = command
@@ -55,7 +55,7 @@ def mock_sdk():
 
     # Mock FileIndex to avoid git subprocess transport leaks
     # The subprocess transports try to close after the event loop is closed
-    from claudechic.file_index import FileIndex
+    from claudeassistant.file_index import FileIndex
 
     mock_file_index = MagicMock(spec=FileIndex)
     mock_file_index.refresh = AsyncMock()
@@ -63,20 +63,16 @@ def mock_sdk():
 
     # Use ExitStack to avoid deep nesting
     with ExitStack() as stack:
-        # Disable analytics to avoid httpx AsyncClient connection leaks
         stack.enter_context(
-            patch("claudechic.analytics.get_analytics_enabled", return_value=False)
+            patch("claudeassistant.app.ClaudeSDKClient", return_value=mock_client)
         )
         stack.enter_context(
-            patch("claudechic.app.ClaudeSDKClient", return_value=mock_client)
+            patch("claudeassistant.agent.ClaudeSDKClient", return_value=mock_client)
         )
         stack.enter_context(
-            patch("claudechic.agent.ClaudeSDKClient", return_value=mock_client)
+            patch("claudeassistant.agent.FileIndex", return_value=mock_file_index)
         )
         stack.enter_context(
-            patch("claudechic.agent.FileIndex", return_value=mock_file_index)
-        )
-        stack.enter_context(
-            patch("claudechic.app.FileIndex", return_value=mock_file_index)
+            patch("claudeassistant.app.FileIndex", return_value=mock_file_index)
         )
         yield mock_client

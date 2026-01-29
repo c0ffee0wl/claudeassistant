@@ -4,7 +4,7 @@ import pytest
 from textual.app import App, ComposeResult
 from textual.widgets import Static
 
-from claudechic.widgets import (
+from claudeassistant.widgets import (
     ChatInput,
     ChatMessage,
     ThinkingIndicator,
@@ -19,9 +19,9 @@ from claudechic.widgets import (
     StatusFooter,
     ContextBar,
 )
-from claudechic.widgets.content.todo import TodoItem
-from claudechic.widgets.layout.processes import ProcessItem
-from claudechic.enums import AgentStatus
+from claudeassistant.widgets.content.todo import TodoItem
+from claudeassistant.widgets.layout.processes import ProcessItem
+from claudeassistant.enums import AgentStatus
 
 
 class WidgetTestApp(App):
@@ -446,7 +446,7 @@ async def test_thinking_indicator_animates():
 @pytest.mark.asyncio
 async def test_history_search_filters():
     """HistorySearch filters history and cycles through matches."""
-    from claudechic.widgets.input.history_search import HistorySearch
+    from claudeassistant.widgets.input.history_search import HistorySearch
     from unittest.mock import patch
 
     class TestApp(App):
@@ -462,7 +462,7 @@ async def test_history_search_filters():
     ]
 
     with patch(
-        "claudechic.widgets.input.history_search.load_global_history",
+        "claudeassistant.widgets.input.history_search.load_global_history",
         return_value=mock_history,
     ):
         app = TestApp()
@@ -538,7 +538,7 @@ async def test_process_panel_updates():
 def test_snap_to_tokens_expands_partial_spans():
     """Word-diff spans that cut through tokens get expanded to token boundaries."""
     from textual.content import Content, Span
-    from claudechic.widgets.content.diff import _snap_to_tokens
+    from claudeassistant.widgets.content.diff import _snap_to_tokens
 
     # Simulate syntax-highlighted "activeInsertionOrders:" with tokens:
     # [0-21] identifier, [21-22] punctuation
@@ -558,7 +558,7 @@ def test_snap_to_tokens_expands_partial_spans():
 def test_snap_to_tokens_preserves_aligned_spans():
     """Spans already aligned with token boundaries stay unchanged."""
     from textual.content import Content, Span
-    from claudechic.widgets.content.diff import _snap_to_tokens
+    from claudeassistant.widgets.content.diff import _snap_to_tokens
 
     content = Content(
         "foo bar",
@@ -574,7 +574,7 @@ def test_snap_to_tokens_preserves_aligned_spans():
 def test_snap_to_tokens_empty_spans():
     """Empty span list returns empty."""
     from textual.content import Content
-    from claudechic.widgets.content.diff import _snap_to_tokens
+    from claudeassistant.widgets.content.diff import _snap_to_tokens
 
     content = Content("hello")
     assert _snap_to_tokens([], content) == []
@@ -582,7 +582,7 @@ def test_snap_to_tokens_empty_spans():
 
 def test_word_diff_with_go_syntax():
     """Integration test: word diff + snapping with real Go syntax highlighting."""
-    from claudechic.widgets.content.diff import (
+    from claudeassistant.widgets.content.diff import (
         _word_diff_spans,
         _snap_to_tokens,
         _highlight_lines,

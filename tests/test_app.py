@@ -3,7 +3,7 @@
 import base64
 from pathlib import Path
 
-from claudechic.agent import Agent, ImageAttachment
+from claudeassistant.agent import Agent, ImageAttachment
 
 
 def test_image_attachment_message_building():

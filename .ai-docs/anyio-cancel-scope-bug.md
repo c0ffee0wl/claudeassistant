@@ -81,4 +81,4 @@ We initially thought `sleep(0)` alone would suffice, but testing showed the CPU 
 
 ## Related
 
-This may be a race condition in anyio's task cleanup during cancellation, or an issue with how the SDK uses `suppress()` around `__aexit__`. Consider filing an issue upstream if reproducible outside claudechic.
+This may be a race condition in anyio's task cleanup during cancellation, or an issue with how the SDK uses `suppress()` around `__aexit__`. Consider filing an issue upstream if reproducible outside claudeassistant.

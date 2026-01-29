@@ -1,7 +1,7 @@
 """Test that ask_agent properly injects sender identity."""
 
 import pytest
-from claudechic.mcp import _make_ask_agent, set_app
+from claudeassistant.mcp import _make_ask_agent, set_app
 
 
 class MockAgent:
@@ -11,13 +11,8 @@ class MockAgent:
         self.session_id = f"session-{name}"
         self.cwd = "/tmp"
         self.status = "idle"
-        self.worktree = None
         self.client = True  # truthy
         self.received_prompt = None
-
-    @property
-    def analytics_id(self) -> str:
-        return self.session_id or self.id
 
     async def send(self, prompt: str) -> None:
         self.received_prompt = prompt
@@ -70,6 +65,11 @@ async def test_ask_agent_injects_sender(mock_app):
     # Call the handler directly
     await ask_agent.handler({"name": "bob", "prompt": "What's the weather?"})
 
+    # Wait for the fire-and-forget task to complete
+    import asyncio
+
+    await asyncio.sleep(0.1)
+
     # Bob should have received the prompt with alice's identity and reply instruction
     assert bob.received_prompt is not None
     assert "[Question from agent 'alice'" in bob.received_prompt
@@ -87,6 +87,11 @@ async def test_ask_agent_without_sender(mock_app):
     ask_agent = _make_ask_agent()
 
     await ask_agent.handler({"name": "bob", "prompt": "What's the weather?"})
+
+    # Wait for the fire-and-forget task to complete
+    import asyncio
+
+    await asyncio.sleep(0.1)
 
     # Without sender, prompt should be unchanged
     assert bob.received_prompt == "What's the weather?"

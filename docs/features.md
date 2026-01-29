@@ -1,6 +1,6 @@
 # Features
 
-Beyond multi-agent and styling, Claude Chic includes several quality-of-life features.
+Beyond multi-agent and styling, Claude Assistant includes several quality-of-life features.
 
 ## Shell Access
 
@@ -28,19 +28,6 @@ Or use the explicit form:
 
 **Inline mode** captures output and displays it in the chat. **Interactive mode** (`-i` flag or no command) suspends the TUI and gives you a real terminal—useful for commands that need interactivity like `vim`, `htop`, or `git rebase -i`.
 
-## Diff Review
-
-Review uncommitted changes before asking Claude to commit:
-
-```bash
-/diff                # Compare working tree to HEAD
-/diff main           # Compare to specific branch/commit
-```
-
-Opens a full-screen diff view with syntax highlighting. You can add comments in the input area—when you submit, Claude sees both the diff and your comments. Press `Escape` to return to chat without sending.
-
-<video src="https://github.com/user-attachments/assets/3c0c262b-2a23-4486-92c4-b97705a0819d" autoplay loop muted playsinline></video>
-
 ## Vim Mode
 
 Toggle vi-style keybindings for the input area:
@@ -60,15 +47,3 @@ Claude sometimes runs long-running commands (builds, tests, servers). Track them
 ```
 
 The process panel in the sidebar shows active processes. Click to view details or kill runaway processes.
-
-## Analytics
-
-Claude Chic collects anonymous usage analytics to help improve the project. You can opt out:
-
-```bash
-/analytics           # Show current status
-/analytics opt-out   # Disable analytics
-/analytics opt-in    # Re-enable analytics
-```
-
-Analytics are **opt-in by default** for new installations. Data collected includes feature usage patterns (which commands are used) but never conversation content.

@@ -1,7 +1,7 @@
 """Tests for fuzzy file search."""
 
 import pytest
-from claudechic.file_index import fuzzy_match_path, search_files
+from claudeassistant.file_index import fuzzy_match_path, search_files
 
 
 class TestFuzzyMatchPath:

@@ -1,16 +1,16 @@
 # Remote Testing Guide
 
-This document explains how to run live tests against claudechic using the remote control HTTP API.
+This document explains how to run live tests against claudeassistant using the remote control HTTP API.
 
 ## Setup
 
-Start claudechic with the auto-restart wrapper:
+Start claudeassistant with the auto-restart wrapper:
 
 ```bash
-./scripts/claudechic-remote 9999
+./scripts/claudeassistant-remote 9999
 ```
 
-This runs claudechic with `--remote-port 9999` and auto-restarts when the app exits.
+This runs claudeassistant with `--remote-port 9999` and auto-restarts when the app exits.
 
 Ask the user if they would like to do this so that they can follow along, but
 offer to do it yourself too in case they don't want to.
@@ -113,7 +113,7 @@ Wait ~2 seconds for restart, then verify:
 sleep 2 && curl -s localhost:9999/status
 ```
 
-Use this when you want to restart the application.  Don't restart the `./scripts/claudechic-remote 9999` server, just send an exit signal and wait a moment.
+Use this when you want to restart the application.  Don't restart the `./scripts/claudeassistant-remote 9999` server, just send an exit signal and wait a moment.
 
 ### POST /key
 Simulate keyboard key presses.
@@ -185,17 +185,17 @@ curl -s localhost:9999/status  # Verify new agent ID
 
 ## Spawning New Instances
 
-On macOS, you can spawn new claudechic instances in separate Terminal windows using osascript:
+On macOS, you can spawn new claudeassistant instances in separate Terminal windows using osascript:
 
 ```bash
 # Spawn a new instance on port 9998 (use absolute path to script)
-osascript -e "tell application \"Terminal\" to do script \"$(pwd)/scripts/claudechic-remote 9998\""
+osascript -e "tell application \"Terminal\" to do script \"$(pwd)/scripts/claudeassistant-remote 9998\""
 
 # Wait for startup, then verify
 sleep 4 && curl -s localhost:9998/status
 ```
 
-**Important**: Use the absolute path to the script. Running `uv run claudechic` directly will use whatever directory the terminal opens in (usually home), which may not have the latest code.
+**Important**: Use the absolute path to the script. Running `uv run claudeassistant` directly will use whatever directory the terminal opens in (usually home), which may not have the latest code.
 
 ## Tips
 

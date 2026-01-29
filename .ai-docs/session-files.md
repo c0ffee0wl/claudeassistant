@@ -63,7 +63,7 @@ print(f'cache_read={u.get(\"cache_read_input_tokens\",0):,}')
 
 # Token breakdown by category
 python3 -c "
-from claudechic.compact import compact_session
+from claudeassistant.compact import compact_session
 stats = compact_session('SESSION_ID', dry_run=True)
 for k, v in stats['before_breakdown'].items():
     print(f'{k}: {v:,}')
@@ -76,7 +76,7 @@ for k, v in stats['before_breakdown'].items():
 - **Microcompact**: Runtime truncation at ~80% context, keeps last ~10 tool results
 - **Autocompact**: Creates summary messages, triggered by minTokens/maxTokens thresholds
 
-### Claudechic `/compactish`
+### Claude Assistant `/compactish`
 Modifies JSONL file directly. Strategy: truncate things BOTH old AND large.
 
 ```
@@ -95,5 +95,5 @@ Parameters:
 
 ## Related Code
 
-- `claudechic/sessions.py`: Session listing, loading, context extraction
-- `claudechic/compact.py`: Compaction logic, token estimation
+- `claudeassistant/sessions.py`: Session listing, loading, context extraction
+- `claudeassistant/compact.py`: Compaction logic, token estimation

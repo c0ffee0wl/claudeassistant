@@ -47,7 +47,7 @@ def text_area():
 @pytest.fixture
 def handler(text_area):
     """Create a ViHandler with mock TextArea."""
-    from claudechic.widgets.input.vi_mode import ViHandler, ViMode
+    from claudeassistant.widgets.input.vi_mode import ViHandler, ViMode
 
     h = ViHandler(text_area)
     h.state.mode = ViMode.NORMAL
@@ -58,32 +58,32 @@ class TestModeSwitch:
     """Test mode transitions."""
 
     def test_escape_to_normal(self, handler):
-        from claudechic.widgets.input.vi_mode import ViMode
+        from claudeassistant.widgets.input.vi_mode import ViMode
 
         handler.state.mode = ViMode.INSERT
         handler.handle_key("escape", None)
         assert handler.state.mode == ViMode.NORMAL
 
     def test_i_to_insert(self, handler):
-        from claudechic.widgets.input.vi_mode import ViMode
+        from claudeassistant.widgets.input.vi_mode import ViMode
 
         handler.handle_key("i", "i")
         assert handler.state.mode == ViMode.INSERT
 
     def test_a_to_insert(self, handler):
-        from claudechic.widgets.input.vi_mode import ViMode
+        from claudeassistant.widgets.input.vi_mode import ViMode
 
         handler.handle_key("a", "a")
         assert handler.state.mode == ViMode.INSERT
 
     def test_v_to_visual(self, handler):
-        from claudechic.widgets.input.vi_mode import ViMode
+        from claudeassistant.widgets.input.vi_mode import ViMode
 
         handler.handle_key("v", "v")
         assert handler.state.mode == ViMode.VISUAL
 
     def test_escape_from_visual(self, handler):
-        from claudechic.widgets.input.vi_mode import ViMode
+        from claudeassistant.widgets.input.vi_mode import ViMode
 
         handler.state.mode = ViMode.VISUAL
         handler.handle_key("escape", None)
@@ -91,7 +91,7 @@ class TestModeSwitch:
 
     def test_escape_in_normal_bubbles_up(self, handler):
         """Escape in NORMAL mode should not be consumed (allows agent interrupt)."""
-        from claudechic.widgets.input.vi_mode import ViMode
+        from claudeassistant.widgets.input.vi_mode import ViMode
 
         handler.state.mode = ViMode.NORMAL
         consumed = handler.handle_key("escape", None)
@@ -146,7 +146,7 @@ class TestOperators:
         assert handler.state.pending_operator is None
 
     def test_cw_changes_word(self, handler, text_area):
-        from claudechic.widgets.input.vi_mode import ViMode
+        from claudeassistant.widgets.input.vi_mode import ViMode
 
         handler.handle_key("c", "c")
         handler.handle_key("w", "w")
@@ -210,7 +210,7 @@ class TestSimpleEdits:
         assert text_area.action_delete_to_end_of_line.called
 
     def test_C_changes_to_eol(self, handler, text_area):
-        from claudechic.widgets.input.vi_mode import ViMode
+        from claudeassistant.widgets.input.vi_mode import ViMode
 
         handler.handle_key("C", "C")
         assert text_area.action_delete_to_end_of_line.called

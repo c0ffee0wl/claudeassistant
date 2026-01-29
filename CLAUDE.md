@@ -1,13 +1,13 @@
-# Claude Chic
+# Claude Assistant
 
 A stylish terminal UI for Claude Code, built with Textual and wrapping the `claude-agent-sdk`.
 
 ## Run
 
 ```bash
-uv run claudechic
-uv run claudechic --resume     # Resume most recent session
-uv run claudechic -s <uuid>    # Resume specific session
+uv run claudeassistant
+uv run claudeassistant --resume     # Resume most recent session
+uv run claudeassistant -s <uuid>    # Resume specific session
 ```
 
 Requires Claude Code to be logged in with a Max/Pro subscription (`claude /login`).
@@ -15,44 +15,37 @@ Requires Claude Code to be logged in with a Max/Pro subscription (`claude /login
 ## File Map
 
 ```
-claudechic/
+claudeassistant/
 ├── __init__.py        # Package entry, exports ChatApp
 ├── __main__.py        # CLI entry point
 ├── agent.py           # Agent class - SDK connection, history, permissions, state
-├── analytics.py       # PostHog analytics - fire-and-forget event tracking
 ├── agent_manager.py   # AgentManager - coordinates multiple concurrent agents
 ├── app.py             # ChatApp - main application, event handlers
 ├── commands.py        # Slash command routing (/agent, /shell, /clear, etc.)
 ├── compact.py         # Session compaction - shrink old tool uses to save context
+├── config.py          # User configuration (theme, vi_mode, logging)
 ├── errors.py          # Logging infrastructure, error handling
 ├── file_index.py      # Fuzzy file search using git ls-files
 ├── formatting.py      # Tool formatting, diff rendering (pure functions)
+├── help_data.py       # Help text and MCP tool documentation
 ├── history.py         # Global history loading from ~/.claude/history.jsonl
 ├── mcp.py             # In-process MCP server for agent control tools
 ├── messages.py        # Custom Textual Message types for SDK events
-├── remote.py          # HTTP server for remote control (live testing)
 ├── permissions.py     # PermissionRequest dataclass for tool approval
+├── processes.py       # BackgroundProcess dataclass, child process detection
 ├── profiling.py       # Lightweight profiling utilities (@profile decorator)
-├── sampling.py        # CPU-conditional sampling profiler for high-CPU investigation
 ├── protocols.py       # Observer protocols (AgentObserver, AgentManagerObserver)
+├── remote.py          # HTTP server for remote control (live testing)
+├── sampling.py        # CPU-conditional sampling profiler for high-CPU investigation
 ├── sessions.py        # Session file loading and listing (pure functions)
 ├── styles.tcss        # Textual CSS - visual styling
 ├── theme.py           # Textual theme definition
-├── usage.py           # OAuth usage API fetching (rate limits)
-├── features/
-│   ├── __init__.py    # Feature module exports
-│   └── worktree/
-│       ├── __init__.py   # Public API (list_worktrees, handle_worktree_command)
-│       ├── commands.py   # /worktree command handlers
-│       └── git.py        # Git worktree operations
-├── processes.py       # BackgroundProcess dataclass, child process detection
 ├── screens/           # Full-page screens (navigation)
 │   ├── chat.py        # ChatScreen - main chat UI (default screen)
-│   ├── diff.py        # DiffScreen - review uncommitted changes
 │   └── session.py     # SessionScreen - session browser for /resume
 └── widgets/
     ├── __init__.py    # Re-exports all widgets for backward compat
-    ├── prompts.py     # All prompt widgets (Selection, Question, Model, Worktree)
+    ├── prompts.py     # All prompt widgets (Selection, Question, Model)
     ├── base/          # Protocols and base classes
     │   ├── clickable.py # ClickableLabel base class
     │   ├── tool_base.py # ToolWidgetBase class
@@ -72,13 +65,12 @@ claudechic/
     │   └── history_search.py # HistorySearch (Ctrl+R)
     ├── layout/        # Structural/container widgets
     │   ├── chat_view.py # ChatView - renders agent messages
-    │   ├── sidebar.py # AgentSidebar, AgentItem, WorktreeItem
+    │   ├── sidebar.py # AgentSidebar, AgentItem
     │   ├── footer.py  # StatusFooter, AutoEditLabel, ModelLabel
     │   ├── indicators.py # IndicatorWidget, CPUBar, ContextBar, ProcessIndicator
     │   └── processes.py # ProcessPanel, ProcessItem
     ├── reports/       # In-page report widgets
-    │   ├── context.py # ContextReport - visual 2D grid
-    │   └── usage.py   # UsageReport, UsageBar
+    │   └── context.py # ContextReport - visual 2D grid
     └── modals/        # Modal screen overlays
         ├── profile.py # ProfileModal - profiling stats
         └── process_modal.py # ProcessModal
@@ -90,6 +82,7 @@ tests/
 ├── test_app_ui.py     # App UI tests without SDK
 ├── test_autocomplete.py # Autocomplete widget tests
 ├── test_file_index.py # Fuzzy file search tests
+├── test_mcp_ask_agent.py # MCP ask_agent tool tests
 └── test_widgets.py    # Pure widget tests
 ```
 
@@ -102,7 +95,6 @@ tests/
 - `sessions.py` - Session file I/O, listing, filtering
 - `file_index.py` - Fuzzy file search, git ls-files integration
 - `compact.py` - Session compaction to reduce context window usage
-- `usage.py` - OAuth API for rate limit info
 
 **Agent layer (no UI dependencies):**
 - `agent.py` - `Agent` class owns SDK client, message history, permissions, state
@@ -113,9 +105,6 @@ tests/
 - `messages.py` - Custom `Message` subclasses for async event communication
 - `permissions.py` - `PermissionRequest` dataclass bridging SDK callbacks to UI
 - `mcp.py` - MCP server exposing agent control tools to Claude
-
-**Features:**
-- `features/worktree/` - Git worktree management for isolated development
 
 **UI components:**
 - `widgets/` - Textual widgets with associated styles
@@ -233,7 +222,6 @@ Agent status indicators: ○ (idle), ● gray (busy), ● orange (needs input)
 - `/resume` - Show session picker
 - `/resume <id>` - Resume specific session
 - `/compactish` - Compact session to reduce context (dry run with `-n`)
-- `/usage` - Show API rate limit usage
 - `/clear` - Clear chat UI
 - `/shell <cmd>` - Suspend TUI and run shell command
 - `/exit` - Quit
@@ -252,7 +240,7 @@ Use parallel testing by default.
 For live testing by AI agents, run with remote control enabled:
 
 ```bash
-./scripts/claudechic-remote 9999
+./scripts/claudeassistant-remote 9999
 ```
 
 This starts an HTTP server on port 9999 with endpoints for sending messages, taking screenshots, and checking state. See [.ai-docs/remote-testing.md](.ai-docs/remote-testing.md) for full API documentation.
@@ -268,6 +256,6 @@ Hooks: ruff (lint + fix), ruff-format, pyright. Run automatically on commit.
 
 ## GitHub
 
-- **Repo:** https://github.com/mrocklin/claudechic
-- **CLI:** `gh` is installed and authenticated as `mrocklin-ai`
+- **Repo:** https://github.com/c0ffee0wl/claudeassistant
+- **CLI:** `gh` is installed and authenticated
 - Use `gh issue list/view`, `gh pr list/view/create`, etc. for GitHub operations

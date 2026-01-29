@@ -2,15 +2,15 @@
 
 import pytest
 
-from claudechic.app import ChatApp
-from claudechic.widgets import (
+from claudeassistant.app import ChatApp
+from claudeassistant.widgets import (
     ChatInput,
     ChatMessage,
     AgentSection,
     TodoPanel,
     StatusFooter,
 )
-from claudechic.messages import (
+from claudeassistant.messages import (
     ResponseComplete,
     ToolUseMessage,
     ToolResultMessage,
@@ -200,7 +200,7 @@ async def test_sidebar_agent_selection(mock_sdk):
 @pytest.mark.asyncio
 async def test_resume_shows_session_screen(mock_sdk):
     """'/resume' shows session screen."""
-    from claudechic.screens import SessionScreen
+    from claudeassistant.screens import SessionScreen
 
     app = ChatApp()
     async with app.run_test() as pilot:
@@ -213,7 +213,7 @@ async def test_resume_shows_session_screen(mock_sdk):
 @pytest.mark.asyncio
 async def test_escape_hides_session_screen(mock_sdk):
     """Escape hides session screen."""
-    from claudechic.screens import SessionScreen
+    from claudeassistant.screens import SessionScreen
 
     app = ChatApp()
     async with app.run_test() as pilot:
@@ -360,7 +360,7 @@ async def test_sidebar_shows_with_multiple_agents(mock_sdk):
 @pytest.mark.asyncio
 async def test_command_output_displays(mock_sdk):
     """CommandOutputMessage displays content in chat."""
-    from claudechic.messages import CommandOutputMessage
+    from claudeassistant.messages import CommandOutputMessage
 
     app = ChatApp()
     async with app.run_test() as pilot:
@@ -384,8 +384,8 @@ async def test_command_output_displays(mock_sdk):
 @pytest.mark.asyncio
 async def test_context_report_displays(mock_sdk):
     """Context command output displays as ContextReport widget."""
-    from claudechic.messages import CommandOutputMessage
-    from claudechic.widgets.reports.context import ContextReport
+    from claudeassistant.messages import CommandOutputMessage
+    from claudeassistant.widgets.reports.context import ContextReport
 
     CONTEXT_OUTPUT = """## Context Usage
 
@@ -422,8 +422,8 @@ async def test_context_report_displays(mock_sdk):
 @pytest.mark.asyncio
 async def test_system_notification_shows_in_chat(mock_sdk):
     """SystemNotification creates SystemInfo widget in chat."""
-    from claudechic.messages import SystemNotification
-    from claudechic.widgets import SystemInfo
+    from claudeassistant.messages import SystemNotification
+    from claudeassistant.widgets import SystemInfo
     from claude_agent_sdk import SystemMessage
 
     app = ChatApp()
@@ -450,8 +450,8 @@ async def test_system_notification_shows_in_chat(mock_sdk):
 @pytest.mark.asyncio
 async def test_system_notification_api_error(mock_sdk):
     """API error notification displays correctly."""
-    from claudechic.messages import SystemNotification
-    from claudechic.widgets import SystemInfo
+    from claudeassistant.messages import SystemNotification
+    from claudeassistant.widgets import SystemInfo
     from claude_agent_sdk import SystemMessage
 
     app = ChatApp()
@@ -482,8 +482,8 @@ async def test_system_notification_api_error(mock_sdk):
 @pytest.mark.asyncio
 async def test_system_notification_compact_boundary(mock_sdk):
     """Compact boundary notification displays."""
-    from claudechic.messages import SystemNotification
-    from claudechic.widgets import SystemInfo
+    from claudeassistant.messages import SystemNotification
+    from claudeassistant.widgets import SystemInfo
     from claude_agent_sdk import SystemMessage
 
     app = ChatApp()
@@ -507,8 +507,8 @@ async def test_system_notification_compact_boundary(mock_sdk):
 @pytest.mark.asyncio
 async def test_system_notification_ignored_subtypes(mock_sdk):
     """Certain subtypes are silently ignored."""
-    from claudechic.messages import SystemNotification
-    from claudechic.widgets import SystemInfo
+    from claudeassistant.messages import SystemNotification
+    from claudeassistant.widgets import SystemInfo
     from claude_agent_sdk import SystemMessage
 
     app = ChatApp()
@@ -531,7 +531,7 @@ async def test_system_notification_ignored_subtypes(mock_sdk):
 @pytest.mark.asyncio
 async def test_sdk_stderr_shows_in_chat(mock_sdk):
     """SDK stderr callback routes messages to chat view."""
-    from claudechic.widgets import SystemInfo
+    from claudeassistant.widgets import SystemInfo
 
     app = ChatApp()
     async with app.run_test() as pilot:
@@ -551,7 +551,7 @@ async def test_sdk_stderr_shows_in_chat(mock_sdk):
 @pytest.mark.asyncio
 async def test_sdk_stderr_ignores_empty(mock_sdk):
     """SDK stderr callback ignores empty/whitespace messages."""
-    from claudechic.widgets import SystemInfo
+    from claudeassistant.widgets import SystemInfo
 
     app = ChatApp()
     async with app.run_test() as pilot:
@@ -572,7 +572,9 @@ async def test_sdk_stderr_ignores_empty(mock_sdk):
 @pytest.mark.asyncio
 async def test_bang_command_inline_shell(mock_sdk):
     """'!cmd' runs shell command and displays output inline."""
-    from claudechic.widgets import ShellOutputWidget
+    import asyncio
+
+    from claudeassistant.widgets import ShellOutputWidget
 
     app = ChatApp()
     async with app.run_test() as pilot:
@@ -582,10 +584,17 @@ async def test_bang_command_inline_shell(mock_sdk):
         input_widget = app.query_one("#input", ChatInput)
         input_widget.text = "!echo hello"
         await pilot.press("enter")
-        await pilot.pause()
+
+        # Wait for shell widget to appear (may take time in parallel tests)
+        widgets: list = []
+        for _ in range(10):
+            await pilot.pause()
+            widgets = list(chat_view.query(ShellOutputWidget))
+            if widgets:
+                break
+            await asyncio.sleep(0.1)
 
         # Should create a ShellOutputWidget
-        widgets = list(chat_view.query(ShellOutputWidget))
         assert len(widgets) == 1
         assert widgets[0].command == "echo hello"
         assert "hello" in widgets[0].stdout
@@ -594,7 +603,9 @@ async def test_bang_command_inline_shell(mock_sdk):
 @pytest.mark.asyncio
 async def test_bang_command_captures_stderr(mock_sdk):
     """'!cmd' captures stderr output (merged with stdout via PTY)."""
-    from claudechic.widgets import ShellOutputWidget
+    import asyncio
+
+    from claudeassistant.widgets import ShellOutputWidget
 
     app = ChatApp()
     async with app.run_test() as pilot:
@@ -604,9 +615,16 @@ async def test_bang_command_captures_stderr(mock_sdk):
         input_widget = app.query_one("#input", ChatInput)
         input_widget.text = "!echo error >&2"
         await pilot.press("enter")
-        await pilot.pause()
 
-        widgets = list(chat_view.query(ShellOutputWidget))
+        # Wait for shell widget to appear (may take time in parallel tests)
+        widgets: list = []
+        for _ in range(10):
+            await pilot.pause()
+            widgets = list(chat_view.query(ShellOutputWidget))
+            if widgets:
+                break
+            await asyncio.sleep(0.1)
+
         assert len(widgets) == 1
         # PTY merges stdout/stderr, so check stdout (which contains both)
         assert "error" in widgets[0].stdout
@@ -615,7 +633,7 @@ async def test_bang_command_captures_stderr(mock_sdk):
 @pytest.mark.asyncio
 async def test_bang_command_shows_exit_code(mock_sdk):
     """'!cmd' shows non-zero exit code in title."""
-    from claudechic.widgets import ShellOutputWidget
+    from claudeassistant.widgets import ShellOutputWidget
 
     app = ChatApp()
     async with app.run_test() as pilot:
@@ -625,9 +643,18 @@ async def test_bang_command_shows_exit_code(mock_sdk):
         input_widget = app.query_one("#input", ChatInput)
         input_widget.text = "!exit 42"
         await pilot.press("enter")
-        await pilot.pause()
 
-        widgets = list(chat_view.query(ShellOutputWidget))
+        # Wait for shell widget to appear (may take time in parallel tests)
+        import asyncio
+
+        widgets: list = []
+        for _ in range(10):
+            await pilot.pause()
+            widgets = list(chat_view.query(ShellOutputWidget))
+            if widgets:
+                break
+            await asyncio.sleep(0.1)
+
         assert len(widgets) == 1
         assert widgets[0].returncode == 42
 
@@ -635,7 +662,7 @@ async def test_bang_command_shows_exit_code(mock_sdk):
 @pytest.mark.asyncio
 async def test_hamburger_button_narrow_screen(mock_sdk):
     """Hamburger button appears on narrow screens with multiple agents."""
-    from claudechic.widgets import HamburgerButton
+    from claudeassistant.widgets import HamburgerButton
 
     app = ChatApp()
     # Start narrow (below SIDEBAR_MIN_WIDTH=110)

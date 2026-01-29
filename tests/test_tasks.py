@@ -1,9 +1,9 @@
-"""Tests for claudechic.tasks module."""
+"""Tests for claudeassistant.tasks module."""
 
 import asyncio
 import pytest
 
-from claudechic.tasks import create_safe_task
+from claudeassistant.tasks import create_safe_task
 
 
 class TestCreateSafeTask:

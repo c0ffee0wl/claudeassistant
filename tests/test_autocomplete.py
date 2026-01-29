@@ -3,8 +3,8 @@
 import pytest
 from pathlib import Path
 
-from claudechic import ChatApp
-from claudechic.widgets import ChatInput, TextAreaAutoComplete
+from claudeassistant import ChatApp
+from claudeassistant.widgets import ChatInput, TextAreaAutoComplete
 
 
 @pytest.mark.asyncio
@@ -26,18 +26,18 @@ async def test_slash_command_autocomplete(mock_sdk, tmp_path: Path):
         assert autocomplete.styles.display == "block"
         assert autocomplete.option_list.option_count >= 4  # At least local commands
 
-        # Type more to filter - /worktree should narrow it down
-        input_widget.text = "/worktree"
+        # Type more to filter - /agent should narrow it down
+        input_widget.text = "/agent"
         await pilot.pause()
 
-        # Should show worktree commands (base, finish, cleanup)
-        assert autocomplete.option_list.option_count == 3
+        # Should show agent commands (base + close variant)
+        assert autocomplete.option_list.option_count == 2
 
         # Type even more to narrow to just one
-        input_widget.text = "/worktree f"
+        input_widget.text = "/agent c"
         await pilot.pause()
 
-        # Should show just /worktree finish
+        # Should show just /agent close
         assert autocomplete.option_list.option_count == 1
 
         # Clear input - should hide
@@ -89,18 +89,18 @@ async def test_tab_completion(mock_sdk):
         autocomplete = app.query_one(TextAreaAutoComplete)
 
         # Type enough to filter to a unique match
-        input_widget.text = "/worktree f"
+        input_widget.text = "/agent c"
         await pilot.pause()
 
-        # Should show just /worktree finish
+        # Should show just /agent close
         assert autocomplete.option_list.option_count == 1
 
         # Press Tab to complete
         await pilot.press("tab")
         await pilot.pause()
 
-        # Input should now be /worktree finish
-        assert input_widget.text == "/worktree finish"
+        # Input should now be /agent close
+        assert input_widget.text == "/agent close"
         assert autocomplete.styles.display == "none"
 
 

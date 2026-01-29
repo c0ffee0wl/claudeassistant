@@ -16,13 +16,13 @@ They invented their own agent logic and have a strong ecosystem.
 ACP protocol (supporting many different agents) made by [Will
 McGugan](https://willmcgugan.github.io/) the creator of Textual.
 
-It is far more shiny than Claude Chic.
+It is far more shiny than Claude Assistant.
 
 <video src="https://github.com/user-attachments/assets/ced36f4b-db02-4d29-8a0a-14ec64b22881" autoplay loop muted playsinline></video>
 
 ## Conductor
 
-[Conductor](https://conductor.build/) is a Mac App that also provides parallel agents, good design, and similar features as Claude Chic.
+[Conductor](https://conductor.build/) is a Mac App that also provides parallel agents, good design, and similar features as Claude Assistant.
 
 ![Conductor Screenshot](https://www.conductor.build/_next/image?url=%2Fdark-screenshot-no-bg.png&w=3840&q=75)
 

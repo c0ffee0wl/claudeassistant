@@ -3,9 +3,9 @@ requires = ["setuptools>=64", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "claudechic"
+name = "claudeassistant"
 dynamic = ["version"]
-description = "Claude Chic - A stylish terminal UI for Claude Code"
+description = "Claude Assistant - A stylish terminal UI for Claude Code"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -33,11 +33,11 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/mrocklin/claudechic"
-Repository = "https://github.com/mrocklin/claudechic"
+Homepage = "https://github.com/c0ffee0wl/claudeassistant"
+Repository = "https://github.com/c0ffee0wl/claudeassistant"
 
 [project.scripts]
-claudechic = "claudechic.__main__:main"
+claudeassistant = "claudeassistant.__main__:main"
 
 [dependency-groups]
 dev = [
@@ -54,10 +54,10 @@ dev = [
 package = true
 
 [tool.setuptools.packages.find]
-include = ["claudechic*"]
+include = ["claudeassistant*"]
 
 [tool.setuptools.package-data]
-claudechic = ["*.tcss", "*.md"]
+claudeassistant = ["*.tcss", "*.md"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
