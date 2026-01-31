@@ -8,7 +8,12 @@ from textual.containers import Vertical, Horizontal, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Static, Button
 
-from claudeassistant.profiling import get_stats_table, get_stats_text, reset_stats, _stats
+from claudeassistant.profiling import (
+    get_stats_table,
+    get_stats_text,
+    reset_stats,
+    _stats,
+)
 from claudeassistant.sampling import get_sampler, flatten
 
 

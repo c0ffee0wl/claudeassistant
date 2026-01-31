@@ -1,5 +1,7 @@
 # Claude Assistant
 
+> **Note:** This is a fork of [mrocklin/claudechic](https://github.com/mrocklin/claudechic).
+
 A stylish terminal UI for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), built with [Textual](https://textual.textualize.io/).
 
 ## Start

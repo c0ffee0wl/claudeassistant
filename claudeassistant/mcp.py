@@ -210,9 +210,7 @@ async def list_agents(args: dict[str, Any]) -> dict[str, Any]:  # noqa: ARG001
         lines = ["Agents:"]
         for i, agent in enumerate(_app.agent_mgr, 1):
             active = "*" if agent.id == _app.agent_mgr.active_id else " "
-            lines.append(
-                f"{active}{i}. {agent.name} [{agent.status}] - {agent.cwd}"
-            )
+            lines.append(f"{active}{i}. {agent.name} [{agent.status}] - {agent.cwd}")
 
         return _text_response("\n".join(lines))
     except Exception as e:

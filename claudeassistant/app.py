@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 from textual.app import App
 from textual.screen import Screen
 
-from claudeassistant.theme import CHIC_THEME
+from claudeassistant.theme import CHIC_THEME, load_custom_themes
 from textual.binding import Binding
 from textual.containers import Vertical, Horizontal
 from textual.events import MouseUp
@@ -50,7 +50,7 @@ from claudeassistant.commands import BARE_WORDS, handle_command
 from claudeassistant.permissions import PermissionRequest, PermissionResponse
 from claudeassistant.agent import Agent, ImageAttachment, ToolUse
 from claudeassistant.agent_manager import AgentManager
-from claudeassistant.config import get_theme, set_theme
+from claudeassistant.config import CONFIG, save as save_config
 from claudeassistant.enums import AgentStatus, PermissionChoice, ToolName
 from claudeassistant.mcp import set_app, create_chic_server
 from claudeassistant.file_index import FileIndex
@@ -74,13 +74,16 @@ from claudeassistant.widgets import (
     ChatView,
     PlanItem,
     PlanSection,
-    FileItem,
     FilesSection,
     HamburgerButton,
     EditPlanRequested,
     PendingShellWidget,
 )
-from claudeassistant.widgets.layout.footer import AutoEditLabel, ModelLabel, StatusFooter
+from claudeassistant.widgets.layout.footer import (
+    AutoEditLabel,
+    ModelLabel,
+    StatusFooter,
+)
 from claudeassistant.widgets.prompts import ModelPrompt
 from claudeassistant.errors import setup_logging  # noqa: F401 - used at startup
 from claudeassistant.errors import set_notify_callback as set_log_notify_callback
@@ -290,10 +293,8 @@ class ChatApp(App):
         cwd = Path(agent.cwd)
         rel_path = Path(make_relative(str(file_path), cwd))
 
-        try:
-            self.files_section.add_file(rel_path, additions, deletions)
-        except Exception:
-            pass  # Widget may not exist yet
+        if files_section := self.query_one_optional("#files-section", FilesSection):
+            files_section.add_file(rel_path, additions, deletions)
 
     # Cached widget accessors (lazy init on first access)
     @property
@@ -317,10 +318,8 @@ class ChatApp(App):
     async def _async_refresh_files(self, agent: Agent) -> None:
         """Refresh files section from git for the given agent's directory."""
         # Files section removed - just hide it
-        try:
-            self.files_section.add_class("hidden")
-        except Exception:
-            pass
+        if files_section := self.query_one_optional("#files-section", FilesSection):
+            files_section.add_class("hidden")
 
     @property
     def todo_panel(self) -> TodoPanel:
@@ -378,10 +377,8 @@ class ChatApp(App):
         if not agent:
             return
         agent.status = status
-        try:
-            self.agent_section.update_status(agent.id, status)
-        except Exception:
-            pass  # Sidebar not mounted yet
+        if agent_section := self.query_one_optional("#agent-section", AgentSection):
+            agent_section.update_status(agent.id, status)
 
     def show_error(self, message: str, exception: Exception | None = None) -> None:
         """Display an error message in the chat view and log to file.
@@ -570,7 +567,9 @@ class ChatApp(App):
 
         # Register and activate custom theme (use saved preference or default to chic)
         self.register_theme(CHIC_THEME)
-        self.theme = get_theme() or "chic"
+        for theme in load_custom_themes():
+            self.register_theme(theme)
+        self.theme = CONFIG.get("theme") or "chic"
 
         # Warn if running in YOLO mode
         if self._skip_permissions:
@@ -597,9 +596,7 @@ class ChatApp(App):
         self.chat_input.focus()
 
         # Initialize vi mode if enabled in config
-        from claudeassistant.config import get_vi_mode
-
-        if get_vi_mode():
+        if CONFIG.get("vi-mode"):
             self._update_vi_mode(True)
 
         # Connect SDK in background - UI renders while this happens
@@ -607,8 +604,9 @@ class ChatApp(App):
 
     def watch_theme(self, theme: str) -> None:
         """Save theme preference when changed."""
-        if theme != get_theme():
-            set_theme(theme)
+        if theme != CONFIG.get("theme"):
+            CONFIG["theme"] = theme
+            save_config()
 
     @work(exclusive=True, group="connect")
     async def _connect_initial_client(self) -> None:
@@ -747,9 +745,7 @@ class ChatApp(App):
 
     def on_chat_input_vi_mode_changed(self, event: ChatInput.ViModeChanged) -> None:
         """Update footer when vi mode changes."""
-        from claudeassistant.config import get_vi_mode
-
-        enabled = get_vi_mode()
+        enabled = CONFIG.get("vi-mode", False)
         self.status_footer.update_vi_mode(event.mode if enabled else None, enabled)
 
     def _handle_prompt(self, prompt: str) -> None:
@@ -802,10 +798,10 @@ class ChatApp(App):
             display_as: Optional shorter text to show in UI
         """
         # Clear visual indicator (images already on agent.pending_images)
-        try:
-            self.query_one("#image-attachments", ImageAttachments).clear()
-        except Exception:
-            pass
+        if attachments := self.query_one_optional(
+            "#image-attachments", ImageAttachments
+        ):
+            attachments.clear()
 
         # Start async send (returns immediately, callbacks handle UI)
         create_safe_task(
@@ -1207,13 +1203,10 @@ class ChatApp(App):
 
     def action_quit(self) -> None:  # type: ignore[override]
         # If history search is visible, cancel it
-        try:
-            hs = self.query_one("#history-search", HistorySearch)
+        if hs := self.query_one_optional("#history-search", HistorySearch):
             if hs.styles.display != "none":
                 hs.action_cancel()
                 return
-        except Exception:
-            pass
 
         # If shell command is running, kill it
         if self._shell_process is not None:
@@ -1228,13 +1221,10 @@ class ChatApp(App):
             return
 
         # If input has text, clear it first
-        try:
-            chat_input = self.query_one("ChatInput", ChatInput)
+        if chat_input := self.query_one_optional("ChatInput", ChatInput):
             if chat_input.text:
                 chat_input.text = ""
                 return
-        except Exception:
-            pass  # No input widget or not mounted
 
         now = time.time()
         if hasattr(self, "_last_quit_time") and now - self._last_quit_time < 1.0:
@@ -2092,11 +2082,8 @@ class ChatApp(App):
 
     def _update_vi_mode(self, enabled: bool) -> None:
         """Update vi-mode on all ChatInput widgets and footer."""
-        try:
-            chat_input = self.query_one("#input", ChatInput)
+        if chat_input := self.query_one_optional("#input", ChatInput):
             chat_input.enable_vi_mode(enabled)
             # Update footer with initial mode
             mode = chat_input.vi_mode if enabled else None
             self.status_footer.update_vi_mode(mode, enabled)
-        except Exception:
-            pass

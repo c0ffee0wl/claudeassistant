@@ -14,7 +14,7 @@ from claudeassistant.agent import (
     ToolUse,
     TextBlock,
 )
-from claudeassistant.config import _load_config
+from claudeassistant.config import CONFIG
 from claudeassistant.enums import AgentStatus, ToolName
 from claudeassistant.formatting import format_agent_prompt
 from claudeassistant.widgets.content.message import (
@@ -24,7 +24,11 @@ from claudeassistant.widgets.content.message import (
     SystemInfo,
 )
 from claudeassistant.widgets.primitives.scroll import AutoHideScroll
-from claudeassistant.widgets.content.tools import ToolUseWidget, TaskWidget, AgentToolWidget
+from claudeassistant.widgets.content.tools import (
+    ToolUseWidget,
+    TaskWidget,
+    AgentToolWidget,
+)
 
 if TYPE_CHECKING:
     from claude_agent_sdk import ToolUseBlock, ToolResultBlock
@@ -42,7 +46,7 @@ COLLAPSE_BY_DEFAULT = {
 }
 
 # How many recent tools to keep expanded (0 = collapse all)
-RECENT_TOOLS_EXPANDED = _load_config().get("recent-tools-expanded", 0)
+RECENT_TOOLS_EXPANDED = CONFIG.get("recent-tools-expanded", 0)
 
 
 class ChatView(AutoHideScroll):

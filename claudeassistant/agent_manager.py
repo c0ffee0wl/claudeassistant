@@ -10,7 +10,11 @@ from typing import Callable, Iterator
 from claude_agent_sdk import ClaudeAgentOptions
 
 from claudeassistant.agent import Agent
-from claudeassistant.protocols import AgentManagerObserver, AgentObserver, PermissionHandler
+from claudeassistant.protocols import (
+    AgentManagerObserver,
+    AgentObserver,
+    PermissionHandler,
+)
 
 log = logging.getLogger(__name__)
 

@@ -214,21 +214,21 @@ def handle_command(app: "ChatApp", prompt: str) -> bool:
 
 
 def _is_user_command(cmd_name: str, cwd: Path) -> bool:
-    """Check if cmd_name is a user-defined command in ~/.claude/commands/ or .claude/commands/."""
-    # Strip leading slash: /cleanup -> cleanup
+    """Check if cmd_name is a user-defined command or skill.
+
+    Commands: ~/.claude/commands/<name>.md or .claude/commands/<name>.md
+    Skills: ~/.claude/skills/<name>/SKILL.md or .claude/skills/<name>/SKILL.md
+    """
     name = cmd_name.lstrip("/")
+    home = Path.home()
 
-    # Check global commands
-    global_commands = Path.home() / ".claude" / "commands"
-    if (global_commands / f"{name}.md").exists():
-        return True
-
-    # Check project commands
-    project_commands = cwd / ".claude" / "commands"
-    if (project_commands / f"{name}.md").exists():
-        return True
-
-    return False
+    paths = [
+        home / ".claude" / "commands" / f"{name}.md",  # global command
+        cwd / ".claude" / "commands" / f"{name}.md",  # project command
+        home / ".claude" / "skills" / name / "SKILL.md",  # global skill
+        cwd / ".claude" / "skills" / name / "SKILL.md",  # project skill
+    ]
+    return any(p.exists() for p in paths)
 
 
 # Commands that exist in Claude Code CLI but not in claudeassistant
@@ -571,11 +571,12 @@ def _handle_processes(app: "ChatApp") -> None:
 
 def _handle_vim(app: "ChatApp") -> bool:
     """Toggle vim mode for input."""
-    from claudeassistant.config import get_vi_mode, set_vi_mode
+    from claudeassistant.config import CONFIG, save
 
-    current = get_vi_mode()
+    current = CONFIG.get("vi-mode", False)
     new_state = not current
-    set_vi_mode(new_state)
+    CONFIG["vi-mode"] = new_state
+    save()
 
     # Update all ChatInput widgets
     app._update_vi_mode(new_state)
@@ -583,5 +584,3 @@ def _handle_vim(app: "ChatApp") -> bool:
     status = "enabled" if new_state else "disabled"
     app.notify(f"Vi mode {status}")
     return True
-
-

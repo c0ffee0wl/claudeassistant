@@ -4,7 +4,11 @@ from importlib.metadata import version
 
 from claudeassistant.app import ChatApp
 from claudeassistant.theme import CHIC_THEME
-from claudeassistant.protocols import AgentManagerObserver, AgentObserver, PermissionHandler
+from claudeassistant.protocols import (
+    AgentManagerObserver,
+    AgentObserver,
+    PermissionHandler,
+)
 
 __all__ = [
     "ChatApp",

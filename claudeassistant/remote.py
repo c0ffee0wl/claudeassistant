@@ -45,7 +45,9 @@ async def handle_screenshot(request: web.Request) -> web.Response:
         return web.json_response({"error": "App not initialized"}, status=500)
 
     fmt = request.query.get("format", "svg")
-    default_path = str(Path(tempfile.gettempdir()) / f"claudeassistant-screenshot.{fmt}")
+    default_path = str(
+        Path(tempfile.gettempdir()) / f"claudeassistant-screenshot.{fmt}"
+    )
     path = request.query.get("path", default_path)
 
     try:

@@ -1,6 +1,5 @@
 """Agent sidebar widget for multi-agent management."""
 
-import re
 import time
 from pathlib import Path
 
@@ -445,11 +444,8 @@ class AgentItem(SidebarItem):
 
     def watch_status(self, _status: str) -> None:
         """Update label when status changes."""
-        try:
-            label = self.query_one(".agent-label", Static)
+        if label := self.query_one_optional(".agent-label", Static):
             label.update(self._render_label())
-        except Exception:
-            pass  # Widget may not be mounted yet
 
     def on_click(self, event: Click) -> None:
         """Handle clicks - check if on close button."""
@@ -513,4 +509,3 @@ class AgentSection(SidebarSection):
         """Update an agent's status."""
         if agent_id in self._agents:
             self._agents[agent_id].status = status
-

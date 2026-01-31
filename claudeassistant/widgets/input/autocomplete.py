@@ -18,7 +18,11 @@ from textual_autocomplete.fuzzy_search import FuzzySearch
 from rich.text import Text
 
 from claudeassistant.file_index import search_files
-from claudeassistant.shell_complete import complete_command, complete_path, parse_shell_input
+from claudeassistant.shell_complete import (
+    complete_command,
+    complete_path,
+    parse_shell_input,
+)
 
 
 @dataclass
